@@ -39,9 +39,66 @@
   const PLACE_INCLUDE_CATEGORY =
     /\b(temples?|mosques?|shrines?|monuments?|museums?|memorials?|forts?|palaces?|castles?|historic\s+sites?|world\s+heritage|national\s+parks?|nature\s+reserves?|natural\s+features?|botanical\s+gardens?|parks?\s+in|gardens?\s+in|archaeological\s+sites?|religious\s+buildings?|churches?|cathedrals?|basilicas?|tourist\s+attractions?|visitor\s+attractions?|landmarks?|heritage|scenic|protected\s+areas?|lakes?|beaches?|mountains?|waterfalls?)\b/i;
 
+  const MOOD_PICK_COUNT = 6;
+
+  const MOOD_META = {
+    peaceful: {
+      label: "Peaceful",
+      sub: "Calm lakes, gardens, and easy strolls — low noise, soft scenery.",
+      themeClass: "mood-results--peaceful",
+    },
+    adventure: {
+      label: "Adventure",
+      sub: "Forts, viewpoints, wildlife — places with energy and scale.",
+      themeClass: "mood-results--adventure",
+    },
+    romantic: {
+      label: "Romantic",
+      sub: "Palaces, lakes, and heritage corners made for slow wandering.",
+      themeClass: "mood-results--romantic",
+    },
+    natural_escape: {
+      label: "Natural escape",
+      sub: "Parks, reserves, water, and green space away from the concrete.",
+      themeClass: "mood-results--natural_escape",
+    },
+    spiritual: {
+      label: "Spiritual",
+      sub: "Temples, shrines, and sacred architecture — contemplative stops.",
+      themeClass: "mood-results--spiritual",
+    },
+  };
+
+  const MOOD_KEYWORDS = {
+    peaceful: {
+      match: ["lake", "garden", "botanical", "park", "viewpoint", "scenic", "lagoon", "river", "canal", "promenade", "reservoir", "quiet", "walk"],
+      penalize: /\b(fort|battle|prison|jail)\b/i,
+    },
+    adventure: {
+      match: ["fort", "wildlife", "zoo", "trek", "safari", "tower", "cliff", "observatory", "adventure", "trail", "mountain", "canyon", "trekking", "paraglid", "bungee"],
+      penalize: /\b(cemetery|hospital|clinic)\b/i,
+    },
+    romantic: {
+      match: ["palace", "lake", "garden", "bridge", "heritage", "mausoleum", "haveli", "plaza", "square", "memorial", "romantic"],
+      penalize: /\b(cemetery|hospital|prison)\b/i,
+    },
+    natural_escape: {
+      match: ["national park", "nature", "wildlife", "waterfall", "beach", "mountain", "forest", "reserve", "botanical", "sanctuary", "lake", "garden", "park", "scenic"],
+      penalize: /\b(shopping|mall|office)\b/i,
+    },
+    spiritual: {
+      match: ["temple", "mosque", "shrine", "cathedral", "gurdwara", "stupa", "monastery", "ashram", "mandir", "dargah", "pilgrim", "synagogue", "basilica", "minar", "pagoda"],
+      penalize: /\b(nightclub|casino)\b/i,
+    },
+  };
+
   const state = {
     expenses: [],
     placeHistory: new Map(),
+    lastUserLat: null,
+    lastUserLon: null,
+    lastAddress: null,
+    nearbyPool: null,
   };
 
   let locationMap;
@@ -70,6 +127,10 @@
     expenseAmount: document.getElementById("expense-amount"),
     expenseList: document.getElementById("expense-list"),
     expenseTotal: document.getElementById("expense-total"),
+    moodResults: document.getElementById("mood-results"),
+    moodPlaces: document.getElementById("mood-places"),
+    moodResultsTitle: document.getElementById("mood-results-title"),
+    moodResultsSub: document.getElementById("mood-results-sub"),
   };
 
   function updateLocationMap(lat, lon) {
@@ -379,6 +440,9 @@
           ui.locationText.textContent = "Lat " + lat.toFixed(3) + ", Lon " + lon.toFixed(3);
         }
         updateLocationMap(lat, lon);
+        state.lastUserLat = lat;
+        state.lastUserLon = lon;
+        state.lastAddress = addr;
         await loadNearbyPlaces(lat, lon, addr);
       },
       function () {
@@ -456,6 +520,44 @@
     if (/park|garden|nature|national park|reserve|waterfall|lake|beach|mountain|wildlife|scenic/.test(t + c))
       return "Nature & outdoors";
     return "Attraction";
+  }
+
+  function scorePlaceForMood(mood, title, categoryTitles) {
+    const cfg = MOOD_KEYWORDS[mood];
+    if (!cfg) return 0;
+    const blob = (normalizeWikiTitle(title) + " " + (categoryTitles || []).join(" ")).toLowerCase();
+    let s = 0;
+    cfg.match.forEach(function (word) {
+      if (blob.indexOf(word) >= 0) s += 2;
+    });
+    if (cfg.penalize && cfg.penalize.test(blob)) s -= 4;
+    return s;
+  }
+
+  function pickPlacesForMood(mood, items, catMap) {
+    const scored = items.map(function (it) {
+      const cats = catMap[it.pageid] || [];
+      const moodScore = scorePlaceForMood(mood, it.title, cats);
+      return { item: it, moodScore: moodScore };
+    });
+    const maxScore = scored.reduce(function (m, x) {
+      return Math.max(m, x.moodScore);
+    }, 0);
+    if (maxScore <= 0) {
+      return items
+        .slice()
+        .sort(function (a, b) {
+          return a.dist - b.dist;
+        })
+        .slice(0, MOOD_PICK_COUNT);
+    }
+    scored.sort(function (a, b) {
+      if (b.moodScore !== a.moodScore) return b.moodScore - a.moodScore;
+      return a.item.dist - b.item.dist;
+    });
+    return scored.slice(0, MOOD_PICK_COUNT).map(function (x) {
+      return x.item;
+    });
   }
 
   async function fetchCategoriesForPageIds(pageIds) {
@@ -586,106 +688,180 @@
     return Array.from(seen.values());
   }
 
+  async function fetchNearbyCandidateList(lat, lon, addressHint) {
+    const addr = addressHint || (await reverseGeocodeAddress(lat, lon));
+    const cityName = cityFromAddress(addr);
+
+    const candidateMap = new Map();
+
+    if (cityName) {
+      const fromCats = await collectCityCategoryCandidates(cityName);
+      fromCats.forEach(function (item) {
+        candidateMap.set(item.pageid, { pageid: item.pageid, title: item.title });
+      });
+    }
+
+    const radii = [10000, 28000, 70000, 150000, 250000];
+    for (let i = 0; i < radii.length; i += 1) {
+      const items = await fetchGeoItems(lat, lon, radii[i], 50);
+      items.forEach(function (item) {
+        const prev = candidateMap.get(item.pageid);
+        if (!prev) {
+          candidateMap.set(item.pageid, item);
+          return;
+        }
+        const prevDist = prev.dist != null ? prev.dist : Infinity;
+        if (item.dist != null && item.dist < prevDist) {
+          candidateMap.set(item.pageid, Object.assign({}, prev, item));
+        }
+      });
+    }
+
+    const raw = Array.from(candidateMap.values());
+    if (!raw.length) return null;
+
+    const pageIds = raw.map(function (g) {
+      return g.pageid;
+    });
+    const catMap = await fetchCategoriesForPageIds(pageIds);
+
+    let filtered = raw.filter(function (g) {
+      const cats = catMap[g.pageid] || [];
+      return isTouristAttraction(g.title, cats);
+    });
+
+    const missingCoordIds = filtered
+      .filter(function (g) {
+        return g.lat == null || g.lon == null || g.dist == null;
+      })
+      .map(function (g) {
+        return g.pageid;
+      });
+    const coordMap = await fetchCoordinatesForPageIds(missingCoordIds);
+
+    filtered = filtered.map(function (g) {
+      let d = g.dist;
+      let la = g.lat;
+      let lo = g.lon;
+      const c = coordMap[g.pageid];
+      if (c) {
+        la = c.lat;
+        lo = c.lon;
+      }
+      if ((d == null || Number.isNaN(d)) && la != null && lo != null) {
+        d = haversineKm(lat, lon, la, lo) * 1000;
+      }
+      return { pageid: g.pageid, title: g.title, dist: d != null ? d : 1e15, lat: la, lon: lo };
+    });
+
+    filtered.sort(function (a, b) {
+      return a.dist - b.dist;
+    });
+
+    return { items: filtered, catMap: catMap, lat: lat, lon: lon, address: addr };
+  }
+
   async function loadNearbyPlaces(lat, lon, addressHint) {
     if (!ui.places) return;
     ui.places.innerHTML =
       '<p class="places-status"><span class="places-status__dot" aria-hidden="true"></span> Finding top picks in your area…</p>';
     try {
-      const addr = addressHint || (await reverseGeocodeAddress(lat, lon));
-      const cityName = cityFromAddress(addr);
-
-      const candidateMap = new Map();
-
-      if (cityName) {
-        const fromCats = await collectCityCategoryCandidates(cityName);
-        fromCats.forEach(function (item) {
-          candidateMap.set(item.pageid, { pageid: item.pageid, title: item.title });
-        });
-      }
-
-      const radii = [10000, 28000, 70000, 150000, 250000];
-      for (let i = 0; i < radii.length; i += 1) {
-        const items = await fetchGeoItems(lat, lon, radii[i], 50);
-        items.forEach(function (item) {
-          const prev = candidateMap.get(item.pageid);
-          if (!prev) {
-            candidateMap.set(item.pageid, item);
-            return;
-          }
-          const prevDist = prev.dist != null ? prev.dist : Infinity;
-          if (item.dist != null && item.dist < prevDist) {
-            candidateMap.set(item.pageid, Object.assign({}, prev, item));
-          }
-        });
-      }
-
-      const raw = Array.from(candidateMap.values());
-      if (!raw.length) {
+      const pack = await fetchNearbyCandidateList(lat, lon, addressHint);
+      if (!pack || !pack.items.length) {
         ui.places.innerHTML =
           "<p class=\"places-empty\">No attraction list was found for Wikipedia near your coordinates. Try refreshing after enabling a more precise location.</p>";
+        state.nearbyPool = null;
         return;
       }
 
-      const pageIds = raw.map(function (g) {
-        return g.pageid;
-      });
-      const catMap = await fetchCategoriesForPageIds(pageIds);
+      state.nearbyPool = {
+        items: pack.items,
+        catMap: pack.catMap,
+        lat: pack.lat,
+        lon: pack.lon,
+      };
 
-      let filtered = raw.filter(function (g) {
-        const cats = catMap[g.pageid] || [];
-        return isTouristAttraction(g.title, cats);
-      });
-
-      const missingCoordIds = filtered
-        .filter(function (g) {
-          return g.lat == null || g.lon == null || g.dist == null;
-        })
-        .map(function (g) {
-          return g.pageid;
-        });
-      const coordMap = await fetchCoordinatesForPageIds(missingCoordIds);
-
-      filtered = filtered.map(function (g) {
-        let d = g.dist;
-        let la = g.lat;
-        let lo = g.lon;
-        const c = coordMap[g.pageid];
-        if (c) {
-          la = c.lat;
-          lo = c.lon;
-        }
-        if ((d == null || Number.isNaN(d)) && la != null && lo != null) {
-          d = haversineKm(lat, lon, la, lo) * 1000;
-        }
-        return { pageid: g.pageid, title: g.title, dist: d != null ? d : 1e15, lat: la, lon: lo };
-      });
-
-      filtered.sort(function (a, b) {
-        return a.dist - b.dist;
-      });
-      filtered = filtered.slice(0, NEARBY_TOP_N);
-
-      if (!filtered.length) {
+      let display = pack.items.slice(0, NEARBY_TOP_N);
+      if (!display.length) {
         ui.places.innerHTML =
           "<p class=\"places-empty\">No temples, monuments, or similar sights matched after filtering out schools, hospitals, and transport hubs. Try again from a more central spot in your city.</p>";
         return;
       }
 
       const thumbs = await fetchThumbnailsForPageIds(
-        filtered.map(function (x) {
+        display.map(function (x) {
           return x.pageid;
         })
       );
 
-      renderPlaceCards(filtered, catMap, thumbs);
+      renderPlaceCards(display, pack.catMap, thumbs, ui.places);
     } catch (error) {
       ui.places.innerHTML =
         "<p class=\"places-empty\">Unable to load nearby attractions right now.</p>";
+      state.nearbyPool = null;
     }
   }
 
-  function renderPlaceCards(items, catMap, thumbs) {
-    ui.places.innerHTML = "";
+  async function showMoodResults(mood) {
+    const meta = MOOD_META[mood];
+    if (!meta || !ui.moodResults || !ui.moodPlaces) return;
+
+    ui.moodResults.hidden = false;
+    ui.moodResults.className = "mood-results " + meta.themeClass;
+    if (ui.moodResultsTitle) ui.moodResultsTitle.textContent = meta.label + " — near you";
+    if (ui.moodResultsSub) ui.moodResultsSub.textContent = meta.sub;
+
+    ui.moodPlaces.innerHTML =
+      '<p class="places-status"><span class="places-status__dot" aria-hidden="true"></span> Matching places to your mood…</p>';
+
+    ui.moodResults.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (ui.moodResultsTitle) ui.moodResultsTitle.focus({ preventScroll: true });
+
+    try {
+      if (!state.nearbyPool || !state.nearbyPool.items.length) {
+        if (state.lastUserLat == null || state.lastUserLon == null) {
+          ui.moodPlaces.innerHTML =
+            "<p class=\"places-empty\">Turn on location first so we can suggest mood-matched places nearby.</p>";
+          return;
+        }
+        const pack = await fetchNearbyCandidateList(state.lastUserLat, state.lastUserLon, state.lastAddress);
+        if (!pack || !pack.items.length) {
+          ui.moodPlaces.innerHTML =
+            "<p class=\"places-empty\">Could not load attractions for your area. Refresh location and try again.</p>";
+          return;
+        }
+        state.nearbyPool = {
+          items: pack.items,
+          catMap: pack.catMap,
+          lat: pack.lat,
+          lon: pack.lon,
+        };
+      }
+
+      const pool = state.nearbyPool;
+      const picked = pickPlacesForMood(mood, pool.items, pool.catMap);
+      if (!picked.length) {
+        ui.moodPlaces.innerHTML =
+          "<p class=\"places-empty\">No mood matches in the current list. Try refreshing your location.</p>";
+        return;
+      }
+
+      const thumbs = await fetchThumbnailsForPageIds(
+        picked.map(function (x) {
+          return x.pageid;
+        })
+      );
+      renderPlaceCards(picked, pool.catMap, thumbs, ui.moodPlaces);
+    } catch (error) {
+      ui.moodPlaces.innerHTML =
+        "<p class=\"places-empty\">Something went wrong loading mood picks. Please try again.</p>";
+    }
+  }
+
+  function renderPlaceCards(items, catMap, thumbs, containerEl) {
+    const container = containerEl || ui.places;
+    if (!container) return;
+    container.innerHTML = "";
     items.forEach(function (item) {
       const cats = catMap[item.pageid] || [];
       const kind = guessPlaceKind(item.title, cats);
@@ -750,7 +926,7 @@
       card.addEventListener("focus", function () {
         loadPlaceHistory(card, item.title);
       });
-      ui.places.appendChild(card);
+      container.appendChild(card);
     });
   }
 
@@ -952,4 +1128,11 @@
   initializeMap();
   setupPlaceSuggest(ui.originInput, ui.originSuggest);
   setupPlaceSuggest(ui.destinationInput, ui.destinationSuggest);
+
+  document.querySelectorAll(".mood-card").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const mood = btn.getAttribute("data-mood");
+      if (mood) showMoodResults(mood);
+    });
+  });
 })();

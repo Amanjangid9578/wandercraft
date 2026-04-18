@@ -166,6 +166,37 @@
                     
                     </section>
 
+                    <section class="panel panel--elevated mood-panel" aria-labelledby="mood-title">
+                      <div class="panel__head">
+                        <div>
+                          <h3 id="mood-title" class="panel__title">What’s your mood?</h3>
+                          <p class="panel__lede">Tap a mood — we’ll scroll to picks near you that match the vibe.</p>
+                        </div>
+                      </div>
+                      <div class="mood-grid" role="list">
+                        <button type="button" class="mood-card mood-card--peaceful" data-mood="peaceful" aria-label="Peaceful">
+                          <span class="mood-card__icon" aria-hidden="true">☁</span>
+                          <span class="mood-card__label">Peaceful</span>
+                        </button>
+                        <button type="button" class="mood-card mood-card--adventure" data-mood="adventure" aria-label="Adventure">
+                          <span class="mood-card__icon" aria-hidden="true">⛰</span>
+                          <span class="mood-card__label">Adventure</span>
+                        </button>
+                        <button type="button" class="mood-card mood-card--romantic" data-mood="romantic" aria-label="Romantic">
+                          <span class="mood-card__icon" aria-hidden="true">♥</span>
+                          <span class="mood-card__label">Romantic</span>
+                        </button>
+                        <button type="button" class="mood-card mood-card--natural" data-mood="natural_escape" aria-label="Natural escape">
+                          <span class="mood-card__icon" aria-hidden="true">🌿</span>
+                          <span class="mood-card__label">Natural escape</span>
+                        </button>
+                        <button type="button" class="mood-card mood-card--spiritual" data-mood="spiritual" aria-label="Spiritual">
+                          <span class="mood-card__icon" aria-hidden="true">🕉</span>
+                          <span class="mood-card__label">Spiritual</span>
+                        </button>
+                      </div>
+                    </section>
+
         </div>
 
         <div class="div2">
@@ -310,6 +341,16 @@
         </form>
         <p class="expense-total">Total <span id="expense-total">0.00</span></p>
         <ul id="expense-list" class="expense-list"></ul>
+      </section>
+
+      <section id="mood-results" class="mood-results" aria-labelledby="mood-results-title" hidden>
+        <div class="mood-results__inner">
+          <header class="mood-results__head">
+            <h3 id="mood-results-title" class="mood-results__title" tabindex="-1">Your mood picks</h3>
+            <p id="mood-results-sub" class="mood-results__sub">Places near you, matched to how you feel.</p>
+          </header>
+          <div id="mood-places" class="places-grid mood-results__grid" role="list"></div>
+        </div>
       </section>
 
       <p class="fine-print">Attraction filtering uses Wikipedia categories and titles; verify hours and access before visiting.</p>
