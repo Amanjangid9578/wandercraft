@@ -1,5 +1,15 @@
 /* WanderCraft — dashboard UI (refined) */
 
+@font-face {
+  font-family: sfreg;
+  src: url(fonts/SFPRODISPLAYREGULAR.OTF);
+}
+
+@font-face {
+  font-family: sfmed;
+  src: url(fonts/SFPRODISPLAYMEDIUM.OTF);
+}
+
 :root {
   --bg-deep: #f8f9fa;
   --bg: #ffffff;
@@ -19,7 +29,7 @@
   --radius-sm: 12px;
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   --font: "DM Sans", system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
+  --font-display: sfreg;
 }
 
 *,
@@ -87,7 +97,19 @@ body {
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
+  border-color: #051210;
+  border-width: 1px;
+  border-style: solid;
 }
+
+/* .sidebar-background{
+  z-index: 9999;
+  position: fixed;
+  opacity: 0.1;
+  left: -290px;
+  margin-top: 50px;
+} */
+
 
 .brand {
   display: flex;
@@ -126,19 +148,20 @@ body {
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 16px;
   flex: 1;
+  margin-top: 30px;
 }
 
 .nav__link {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.65rem 0.75rem;
+  padding: 0.75rem 0.75rem;
   border-radius: var(--radius-sm);
-  color: var(--muted);
+  color: #323232;
   text-decoration: none;
-  font-size: 0.92rem;
+  font-size: 23px;
   font-weight: 500;
   transition: background 0.2s, color 0.2s, transform 0.15s;
 }
@@ -221,11 +244,55 @@ body {
   border-width: 1px;
   border-style: solid;
       /* box-shadow: 12px 12px #000000; */
+      box-shadow: 4px 4px #000000;
 
 }
 
 .hero__copy {
   max-width: 560px;
+}
+
+.top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.top-row .hero,
+.top-row .map-panel {
+  height: 100%;
+}
+
+.map-panel {
+  display: flex;
+  flex-direction: column;
+  border-color: #051210;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: 4px 4px #000000;
+}
+
+.map-frame-wrap {
+  flex: 1;
+  min-height: 180px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #e8efe6;
+}
+
+.location-map {
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+}
+
+.welcome-text {
+  margin: 0 10px 0.55rem;
+  font-size: 43px;
+  font-family: sfmed;
+  color: #000000;
 }
 
 .eyebrow {
@@ -234,6 +301,7 @@ body {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent);
+  font-family: sfmed;
 }
 
 .eyebrow--panel {
@@ -243,9 +311,9 @@ body {
 .hero__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.45rem, 2.5vw, 1.85rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.55rem, 2.5vw, 1.95rem);
+  /* font-weight: 75z0; */
+  /* letter-spacing: -0.03em; */
   line-height: 1.2;
 }
 
@@ -288,6 +356,13 @@ body {
     border-color: #051210;
   border-width: 1px;
   border-style: solid;
+  box-shadow: 4px 4px #000000;
+}
+
+.itinerary-panel {
+  width: 100%;
+  padding: 1.25rem 1.35rem;
+  margin-top: 1rem;
 }
 
 .panel--elevated {
@@ -295,15 +370,51 @@ body {
   border-color: #051210;
   border-width: 1px;
   border-style: solid;
+  width: 100%;
+  height: auto;
+}
+
+#nearby {
+  min-height: 27vw;
 
 }
 
+
+
+
+
+
+.parent {
+  display: grid;
+  margin-top: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto;
+  gap: 28px;
+  align-items: start;
+}
+
+.div2 {
+  grid-column: span 2 / span 2;
+}
+
+        
+        
+
+
+
+
+
 .panel--budget {
   background: linear-gradient(160deg, #f8f9fa 0%, #e8eaed 100%);
+  margin-top: 9px;
 }
 
 .panel__head {
   margin-bottom: 1.1rem;
+}
+
+#expenses{
+  margin-top: 8px;
 }
 
 .panel__head--split {
@@ -313,7 +424,7 @@ body {
 .panel__title {
   margin: 0.2rem 0 0;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 30px;
   font-weight: 600;
 }
 
@@ -394,8 +505,11 @@ select:focus {
   font-weight: 600;
   font-size: 0.95rem;
   color: #051210;
-  background: linear-gradient(135deg, var(--accent), #1557b0);
-  box-shadow: 0 10px 28px rgba(26, 115, 232, 0.2);
+  background: #3d8df5;
+  border-color: #051210;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 4px 4px #000000;
   transition: transform 0.15s, box-shadow 0.2s;
 }
 
@@ -504,7 +618,9 @@ select:focus {
 
 .itinerary {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: max-content;
 }
 
 .day-card {
@@ -874,5 +990,19 @@ select:focus {
 
   .btn--compact {
     width: 100%;
+  }
+
+  .itinerary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .top-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .itinerary {
+    grid-template-columns: 1fr;
   }
 }

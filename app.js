@@ -43,6 +43,9 @@
     placeHistory: new Map(),
   };
 
+  let locationMap;
+  let locationMarker;
+
   const ui = {
     locationText: document.getElementById("location-text"),
     detectBtn: document.getElementById("detect-btn"),
@@ -55,6 +58,8 @@
     resultMeta: document.getElementById("result-meta"),
     tipText: document.getElementById("tip-text"),
     itinerary: document.getElementById("itinerary"),
+    welcomeText: document.getElementById("welcome-text"),
+    locationMap: document.getElementById("location-map"),
     budgetSummary: document.getElementById("budget-summary"),
     expenseForm: document.getElementById("expense-form"),
     expenseNote: document.getElementById("expense-note"),
@@ -62,6 +67,32 @@
     expenseList: document.getElementById("expense-list"),
     expenseTotal: document.getElementById("expense-total"),
   };
+
+  function updateLocationMap(lat, lon) {
+    if (locationMap) {
+      locationMap.setView([lat, lon], 14);
+      locationMarker.setLatLng([lat, lon]);
+    }
+  }
+
+  function initializeMap() {
+    const redIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    locationMap = L.map('location-map').setView([28.63, 77.20], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(locationMap);
+
+    locationMarker = L.marker([28.63, 77.20], { icon: redIcon }).addTo(locationMap);
+  }
 
   function clampDays(value) {
     const n = parseInt(value, 10);
@@ -75,6 +106,12 @@
 
   function normalizeVibe(value) {
     return Object.prototype.hasOwnProperty.call(VIBE_PLANS, value) ? value : "chill";
+  }
+
+  function loadWelcomeName() {
+    if (!ui.welcomeText) return;
+    var name = localStorage.getItem("wandercraftName");
+    ui.welcomeText.textContent = name ? "Welcome back, " + name + "!" : "Welcome back!";
   }
 
   function dailyBudget(budget) {
@@ -296,6 +333,7 @@
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
         ui.locationText.textContent = "Lat " + lat.toFixed(3) + ", Lon " + lon.toFixed(3);
+        updateLocationMap(lat, lon);
         await reverseGeocode(lat, lon);
         await loadNearbyPlaces(lat, lon);
       },
@@ -657,5 +695,7 @@
     });
   }
 
+  loadWelcomeName();
   detectLocation();
+  initializeMap();
 })();
