@@ -1,23 +1,23 @@
 /* WanderCraft — dashboard UI (refined) */
 
 :root {
-  --bg-deep: #070a0f;
-  --bg: #0c1018;
-  --sidebar: #0e141c;
-  --surface: #141b26;
-  --surface-2: #1a2332;
-  --elevated: rgba(22, 30, 44, 0.85);
-  --text: #f0f3f8;
-  --muted: #8b97a8;
-  --muted-2: #5c6778;
-  --accent: #5ee6c4;
-  --accent-2: #7c9cff;
-  --accent-dim: rgba(94, 230, 196, 0.12);
-  --line: rgba(255, 255, 255, 0.07);
-  --line-strong: rgba(255, 255, 255, 0.12);
+  --bg-deep: #f8f9fa;
+  --bg: #ffffff;
+  --sidebar: #f1f3f4;
+  --surface: #ffffff;
+  --surface-2: #f8f9fa;
+  --elevated: rgba(255, 255, 255, 0.9);
+  --text: #202124;
+  --muted: #5f6368;
+  --muted-2: #80868b;
+  --accent: #1a73e8;
+  --accent-2: #34a853;
+  --accent-dim: rgba(26, 115, 232, 0.1);
+  --line: rgba(0, 0, 0, 0.12);
+  --line-strong: rgba(0, 0, 0, 0.24);
   --radius: 18px;
   --radius-sm: 12px;
-  --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   --font: "DM Sans", system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
 }
@@ -33,13 +33,14 @@ html {
 }
 
 body {
+  /* padding: 0; */
   margin: 0;
   min-height: 100vh;
   font-family: var(--font);
   font-size: 15px;
   line-height: 1.55;
   color: var(--text);
-  background: #ffffff;
+  background: #dee1cc;
 }
 
 .bg-mesh {
@@ -48,9 +49,9 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(124, 156, 255, 0.18), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(94, 230, 196, 0.12), transparent 50%),
-    radial-gradient(ellipse 50% 35% at 50% 100%, rgba(255, 180, 120, 0.06), transparent 45%);
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(26, 115, 232, 0.1), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(52, 168, 83, 0.08), transparent 50%),
+    radial-gradient(ellipse 50% 35% at 50% 100%, rgba(251, 188, 5, 0.06), transparent 45%);
 }
 
 .bg-noise {
@@ -66,21 +67,23 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 272px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
-  max-width: 1440px;
-  margin: 0 auto;
 }
 
 /* Sidebar */
 .sidebar {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  left: 0;
+  top: 2.5vh;
+  border-radius: 0px 30px 30px 0px;
   align-self: start;
-  height: 100vh;
+  /* justify-self: center; */
+  width: 272px;
+  height: 95vh;
   padding: 1.5rem 1.1rem;
   border-right: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(14, 20, 28, 0.98) 0%, rgba(10, 14, 20, 0.98) 100%);
+  background: linear-gradient(180deg, rgba(241, 243, 244, 0.98) 0%, rgba(248, 249, 250, 0.98) 100%);
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
@@ -142,7 +145,7 @@ body {
 
 .nav__link:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .nav__link:focus-visible {
@@ -182,7 +185,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.05);
   border: 1px solid var(--line);
   border-radius: 10px;
   cursor: pointer;
@@ -191,11 +194,12 @@ body {
 
 .btn--sidebar:hover {
   border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* Dashboard */
 .dashboard {
+  margin-left: 272px;
   padding: 1.75rem 1.75rem 3rem;
   display: flex;
   flex-direction: column;
@@ -211,8 +215,13 @@ body {
   padding: 1.25rem 1.35rem;
   border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: linear-gradient(135deg, var(--elevated), rgba(20, 27, 38, 0.4));
-  box-shadow: var(--shadow);
+  background: linear-gradient(135deg, var(--elevated), rgba(248, 249, 250, 0.4));
+  /* box-shadow: var(--shadow); */
+    border-color: #051210;
+  border-width: 1px;
+  border-style: solid;
+      /* box-shadow: 12px 12px #000000; */
+
 }
 
 .hero__copy {
@@ -251,7 +260,7 @@ body {
   padding: 0.85rem 1rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.8);
   min-width: 180px;
 }
 
@@ -273,17 +282,24 @@ body {
 /* Panels */
 .panel {
   border-radius: var(--radius);
-  border: 1px solid var(--line);
+  /* border: 1px solid var(--line); */
   background: var(--surface);
   padding: 1.25rem 1.35rem;
+    border-color: #051210;
+  border-width: 1px;
+  border-style: solid;
 }
 
 .panel--elevated {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  /* box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); */
+  border-color: #051210;
+  border-width: 1px;
+  border-style: solid;
+
 }
 
 .panel--budget {
-  background: linear-gradient(160deg, #151d2a 0%, #121822 100%);
+  background: linear-gradient(160deg, #f8f9fa 0%, #e8eaed 100%);
 }
 
 .panel__head {
@@ -356,7 +372,7 @@ input::placeholder {
 input:focus,
 select:focus {
   outline: none;
-  border-color: rgba(94, 230, 196, 0.45);
+  border-color: rgba(26, 115, 232, 0.4);
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
@@ -378,14 +394,14 @@ select:focus {
   font-weight: 600;
   font-size: 0.95rem;
   color: #051210;
-  background: linear-gradient(135deg, var(--accent), #3bc4a8);
-  box-shadow: 0 10px 28px rgba(94, 230, 196, 0.22);
+  background: linear-gradient(135deg, var(--accent), #1557b0);
+  box-shadow: 0 10px 28px rgba(26, 115, 232, 0.2);
   transition: transform 0.15s, box-shadow 0.2s;
 }
 
 .btn--primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 14px 34px rgba(94, 230, 196, 0.28);
+  box-shadow: 0 14px 34px rgba(26, 115, 232, 0.25);
 }
 
 .btn--compact {
@@ -406,7 +422,7 @@ select:focus {
   padding: 0.7rem 0.8rem;
   border-radius: 11px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text);
   font-size: 0.82rem;
   font-weight: 600;
@@ -416,7 +432,7 @@ select:focus {
 
 .btn--field-action:hover {
   border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* Itinerary */
@@ -461,8 +477,8 @@ select:focus {
   align-items: flex-start;
   padding: 0.9rem 1rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(124, 156, 255, 0.25);
-  background: rgba(124, 156, 255, 0.06);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  background: rgba(26, 115, 232, 0.05);
   margin-bottom: 1rem;
 }
 
@@ -501,7 +517,7 @@ select:focus {
 .day-card__head {
   padding: 0.75rem 0.9rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .day-card__title {
@@ -575,7 +591,7 @@ select:focus {
   padding: 0.3rem 0.6rem;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text);
   font-size: 0.8rem;
   line-height: 1.2;
@@ -645,7 +661,7 @@ select:focus {
 
 .place-card__media {
   aspect-ratio: 16 / 10;
-  background: linear-gradient(135deg, #1e2a3d, #121822);
+  background: linear-gradient(135deg, #e8eaed, #f1f3f4);
   overflow: hidden;
 }
 
@@ -658,8 +674,8 @@ select:focus {
 
 .place-card__media--empty {
   background:
-    radial-gradient(circle at 30% 30%, rgba(94, 230, 196, 0.12), transparent 45%),
-    linear-gradient(145deg, #1a2434, #121a26);
+    radial-gradient(circle at 30% 30%, rgba(26, 115, 232, 0.1), transparent 45%),
+    linear-gradient(145deg, #f1f3f4, #e8eaed);
 }
 
 .place-card__body {
@@ -692,7 +708,7 @@ select:focus {
   position: absolute;
   inset: 0;
   padding: 0.85rem 0.95rem;
-  background: rgba(6, 9, 14, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--line-strong);
   opacity: 0;
   transform: translateY(6px);
@@ -749,7 +765,7 @@ select:focus {
   padding: 0.85rem 0.95rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .budget-box p {
@@ -769,8 +785,8 @@ select:focus {
 }
 
 .budget-box--total {
-  border-color: rgba(94, 230, 196, 0.35);
-  background: linear-gradient(135deg, rgba(94, 230, 196, 0.1), rgba(124, 156, 255, 0.06));
+  border-color: rgba(26, 115, 232, 0.3);
+  background: linear-gradient(135deg, rgba(26, 115, 232, 0.1), rgba(52, 168, 83, 0.06));
 }
 
 /* Expenses */
@@ -838,8 +854,13 @@ select:focus {
   .sidebar {
     position: static;
     height: auto;
+    width: auto;
     border-right: none;
     border-bottom: 1px solid var(--line);
+  }
+
+  .dashboard {
+    margin-left: 0;
   }
 
   .sidebar-card {
