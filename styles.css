@@ -375,8 +375,8 @@ body {
 }
 
 #nearby {
-  min-height: 27vw;
-
+  height: 650px;
+  overflow-y: auto;
 }
 
 
@@ -451,11 +451,67 @@ body {
   gap: 0.35rem;
 }
 
+.field-suggest-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .field-inline {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.5rem;
   align-items: center;
+}
+
+.place-suggest {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 13rem;
+  overflow-y: auto;
+  border-radius: 11px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+}
+
+.place-suggest li {
+  margin: 0;
+}
+
+.place-suggest button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.52rem 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.place-suggest button:hover,
+.place-suggest button:focus {
+  outline: none;
+  background: rgba(26, 115, 232, 0.1);
+}
+
+.place-suggest__meta {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted-2);
+  margin-top: 0.15rem;
 }
 
 .field span {
