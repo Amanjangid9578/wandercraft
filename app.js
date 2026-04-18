@@ -608,7 +608,7 @@
     state.expenses.forEach(function (entry) {
       total += entry.amount;
       const li = document.createElement("li");
-      li.innerHTML = "<span>" + escapeHtml(entry.note) + "</span><strong>$" + entry.amount.toFixed(2) + "</strong>";
+      li.innerHTML = "<span>" + escapeHtml(entry.note) + "</span><strong>₹" + entry.amount.toFixed(2) + "</strong>";
       ui.expenseList.appendChild(li);
     });
     ui.expenseTotal.textContent = total.toFixed(2);
