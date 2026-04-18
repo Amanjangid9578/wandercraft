@@ -20,9 +20,10 @@
     "For crowd control, target major spots within 90 minutes of opening.",
     "Keep one indoor backup block per day for weather changes.",
   ];
-  const MIN_NEARBY_RESULTS = 6;
+  const NEARBY_TOP_N = 5;
 
   /**
+
    * Nearby places: only temples, monuments, museums, nature, heritage, etc.
    * Excludes schools, hospitals, offices, and similar non-attraction POIs.
    */
@@ -51,6 +52,9 @@
     detectBtn: document.getElementById("detect-btn"),
     originLocationBtn: document.getElementById("origin-location-btn"),
     originInput: document.getElementById("origin"),
+    destinationInput: document.getElementById("destination"),
+    originSuggest: document.getElementById("origin-suggest"),
+    destinationSuggest: document.getElementById("destination-suggest"),
     places: document.getElementById("places"),
     tripForm: document.getElementById("trip-form"),
     resultSection: document.getElementById("result-section"),
@@ -131,6 +135,43 @@
     return 2 * R * Math.asin(Math.sqrt(h));
   }
 
+  const SUGGEST_DEBOUNCE_MS = 300;
+
+  async function reverseGeocodeAddress(lat, lon) {
+    try {
+      const res = await fetch(
+        "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
+          encodeURIComponent(lat) +
+          "&lon=" +
+          encodeURIComponent(lon)
+      );
+      const data = await res.json();
+      if (!data || !data.address) return null;
+      return data.address;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function cityFromAddress(addr) {
+    if (!addr) return null;
+    return (
+      addr.city ||
+      addr.town ||
+      addr.village ||
+      addr.municipality ||
+      addr.state_district ||
+      addr.county ||
+      null
+    );
+  }
+
+  function wikiCategorySlug(cityName) {
+    return String(cityName || "")
+      .trim()
+      .replace(/\s+/g, "_");
+  }
+
   async function geocodePlace(name) {
     const query = String(name || "").trim();
     if (!query) return null;
@@ -152,22 +193,11 @@
   }
 
   async function reverseGeocodeName(lat, lon) {
-    try {
-      const res = await fetch(
-        "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
-          encodeURIComponent(lat) +
-          "&lon=" +
-          encodeURIComponent(lon)
-      );
-      const data = await res.json();
-      if (!data || !data.address) return null;
-      const addr = data.address;
-      const name =
-        addr.city || addr.town || addr.village || addr.county || addr.state_district || addr.state || null;
-      return name;
-    } catch (error) {
-      return null;
-    }
+    const addr = await reverseGeocodeAddress(lat, lon);
+    const city = cityFromAddress(addr);
+    if (city) return city;
+    if (addr && addr.state) return addr.state;
+    return null;
   }
 
   async function getRouteDetails(origin, destination) {
@@ -324,21 +354,39 @@
   async function detectLocation() {
     if (!navigator.geolocation) {
       ui.locationText.textContent = "Geolocation not supported in this browser.";
+      if (ui.places) {
+        ui.places.innerHTML =
+          "<p class=\"places-empty\">Location is unavailable in this browser.</p>";
+      }
       return;
     }
 
     ui.locationText.textContent = "Detecting precise position...";
+    if (ui.places) {
+      ui.places.innerHTML =
+        '<p class="places-status"><span class="places-status__dot" aria-hidden="true"></span> Finding top picks in your area…</p>';
+    }
+
     navigator.geolocation.getCurrentPosition(
       async function (position) {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
-        ui.locationText.textContent = "Lat " + lat.toFixed(3) + ", Lon " + lon.toFixed(3);
+        const addr = await reverseGeocodeAddress(lat, lon);
+        if (addr) {
+          const city = cityFromAddress(addr) || "your area";
+          ui.locationText.textContent = city + " (" + lat.toFixed(3) + ", " + lon.toFixed(3) + ")";
+        } else {
+          ui.locationText.textContent = "Lat " + lat.toFixed(3) + ", Lon " + lon.toFixed(3);
+        }
         updateLocationMap(lat, lon);
-        await reverseGeocode(lat, lon);
-        await loadNearbyPlaces(lat, lon);
+        await loadNearbyPlaces(lat, lon, addr);
       },
       function () {
         ui.locationText.textContent = "Location permission denied. You can still use planner manually.";
+        if (ui.places) {
+          ui.places.innerHTML =
+            "<p class=\"places-empty\">Allow location access to see five curated tourist picks for your current city. You can still type cities manually in the planner.</p>";
+        }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -372,24 +420,6 @@
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }
-
-  async function reverseGeocode(lat, lon) {
-    try {
-      const res = await fetch(
-        "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
-          encodeURIComponent(lat) +
-          "&lon=" +
-          encodeURIComponent(lon)
-      );
-      const data = await res.json();
-      if (data && data.address) {
-        const city = data.address.city || data.address.town || data.address.village || "your area";
-        ui.locationText.textContent = city + " (" + lat.toFixed(3) + ", " + lon.toFixed(3) + ")";
-      }
-    } catch (error) {
-      ui.locationText.textContent += " • Reverse geocode unavailable.";
-    }
   }
 
   function normalizeWikiTitle(t) {
@@ -476,6 +506,54 @@
     return out;
   }
 
+  async function fetchCategoryMembers(cmtitle, maxTotal) {
+    const out = [];
+    let cmcontinue = null;
+    const cap = Math.min(maxTotal, 120);
+    while (out.length < cap) {
+      let url =
+        "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=categorymembers&cmnamespace=0&cmlimit=50&cmtitle=" +
+        encodeURIComponent(cmtitle);
+      if (cmcontinue) url += "&cmcontinue=" + encodeURIComponent(cmcontinue);
+      const res = await fetch(url);
+      const data = await res.json();
+      const list = data.query && data.query.categorymembers ? data.query.categorymembers : [];
+      list.forEach(function (m) {
+        if (m.pageid && m.title && out.length < cap) {
+          out.push({ pageid: m.pageid, title: m.title });
+        }
+      });
+      if (!data.continue || !data.continue.cmcontinue) break;
+      cmcontinue = data.continue.cmcontinue;
+    }
+    return out;
+  }
+
+  async function fetchCoordinatesForPageIds(pageIds) {
+    const coordMap = {};
+    if (!pageIds.length) return coordMap;
+    const chunkSize = 48;
+    for (let i = 0; i < pageIds.length; i += chunkSize) {
+      const chunk = pageIds.slice(i, i + chunkSize);
+      const url =
+        "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=coordinates&coprimary=primary&pageids=" +
+        chunk.join("|");
+      const res = await fetch(url);
+      const data = await res.json();
+      const pages = data.query && data.query.pages ? data.query.pages : {};
+      Object.keys(pages).forEach(function (pid) {
+        const p = pages[pid];
+        if (p.coordinates && p.coordinates[0]) {
+          coordMap[p.pageid] = {
+            lat: Number(p.coordinates[0].lat),
+            lon: Number(p.coordinates[0].lon),
+          };
+        }
+      });
+    }
+    return coordMap;
+  }
+
   async function fetchGeoItems(lat, lon, radius, limit) {
     const geoRes = await fetch(
       "https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gsradius=" +
@@ -489,22 +567,62 @@
     return geoData && geoData.query && geoData.query.geosearch ? geoData.query.geosearch : [];
   }
 
-  async function loadNearbyPlaces(lat, lon) {
+  async function collectCityCategoryCandidates(cityName) {
+    const slug = wikiCategorySlug(cityName);
+    if (!slug) return [];
+    const categoryTitles = [
+      "Category:Visitor_attractions_in_" + slug,
+      "Category:Tourist_attractions_in_" + slug,
+      "Category:Landmarks_in_" + slug,
+    ];
+    const seen = new Map();
+    for (let t = 0; t < categoryTitles.length; t += 1) {
+      const members = await fetchCategoryMembers(categoryTitles[t], 90);
+      members.forEach(function (m) {
+        if (!seen.has(m.pageid)) seen.set(m.pageid, { pageid: m.pageid, title: m.title });
+      });
+      if (seen.size >= 40) break;
+    }
+    return Array.from(seen.values());
+  }
+
+  async function loadNearbyPlaces(lat, lon, addressHint) {
+    if (!ui.places) return;
     ui.places.innerHTML =
-      '<p class="places-status"><span class="places-status__dot" aria-hidden="true"></span> Finding curated attractions nearby…</p>';
+      '<p class="places-status"><span class="places-status__dot" aria-hidden="true"></span> Finding top picks in your area…</p>';
     try {
-      const radii = [15000, 35000, 70000];
-      const rawMap = new Map();
+      const addr = addressHint || (await reverseGeocodeAddress(lat, lon));
+      const cityName = cityFromAddress(addr);
+
+      const candidateMap = new Map();
+
+      if (cityName) {
+        const fromCats = await collectCityCategoryCandidates(cityName);
+        fromCats.forEach(function (item) {
+          candidateMap.set(item.pageid, { pageid: item.pageid, title: item.title });
+        });
+      }
+
+      const radii = [10000, 28000, 70000, 150000, 250000];
       for (let i = 0; i < radii.length; i += 1) {
         const items = await fetchGeoItems(lat, lon, radii[i], 50);
         items.forEach(function (item) {
-          if (!rawMap.has(item.pageid)) rawMap.set(item.pageid, item);
+          const prev = candidateMap.get(item.pageid);
+          if (!prev) {
+            candidateMap.set(item.pageid, item);
+            return;
+          }
+          const prevDist = prev.dist != null ? prev.dist : Infinity;
+          if (item.dist != null && item.dist < prevDist) {
+            candidateMap.set(item.pageid, Object.assign({}, prev, item));
+          }
         });
       }
-      const raw = Array.from(rawMap.values());
+
+      const raw = Array.from(candidateMap.values());
       if (!raw.length) {
         ui.places.innerHTML =
-          "<p class=\"places-empty\">No Wikipedia points found in this radius. Try again after moving or use a larger city area.</p>";
+          "<p class=\"places-empty\">No attraction list was found for Wikipedia near your coordinates. Try refreshing after enabling a more precise location.</p>";
         return;
       }
 
@@ -513,26 +631,44 @@
       });
       const catMap = await fetchCategoriesForPageIds(pageIds);
 
-      const filtered = raw
+      let filtered = raw.filter(function (g) {
+        const cats = catMap[g.pageid] || [];
+        return isTouristAttraction(g.title, cats);
+      });
+
+      const missingCoordIds = filtered
         .filter(function (g) {
-          const cats = catMap[g.pageid] || [];
-          return isTouristAttraction(g.title, cats);
+          return g.lat == null || g.lon == null || g.dist == null;
         })
-        .sort(function (a, b) {
-          return a.dist - b.dist;
-        })
-        .slice(0, 12);
+        .map(function (g) {
+          return g.pageid;
+        });
+      const coordMap = await fetchCoordinatesForPageIds(missingCoordIds);
+
+      filtered = filtered.map(function (g) {
+        let d = g.dist;
+        let la = g.lat;
+        let lo = g.lon;
+        const c = coordMap[g.pageid];
+        if (c) {
+          la = c.lat;
+          lo = c.lon;
+        }
+        if ((d == null || Number.isNaN(d)) && la != null && lo != null) {
+          d = haversineKm(lat, lon, la, lo) * 1000;
+        }
+        return { pageid: g.pageid, title: g.title, dist: d != null ? d : 1e15, lat: la, lon: lo };
+      });
+
+      filtered.sort(function (a, b) {
+        return a.dist - b.dist;
+      });
+      filtered = filtered.slice(0, NEARBY_TOP_N);
 
       if (!filtered.length) {
         ui.places.innerHTML =
-          "<p class=\"places-empty\">No temples, monuments, or natural sights matched nearby after filtering out schools and hospitals. Pan the map or try a more historic area.</p>";
+          "<p class=\"places-empty\">No temples, monuments, or similar sights matched after filtering out schools, hospitals, and transport hubs. Try again from a more central spot in your city.</p>";
         return;
-      }
-      if (filtered.length < MIN_NEARBY_RESULTS) {
-        ui.places.innerHTML =
-          "<p class=\"places-empty\">Only " +
-          filtered.length +
-          " curated attractions were found after strict filtering. Expanding radius still did not reach six in this area.</p>";
       }
 
       const thumbs = await fetchThumbnailsForPageIds(
@@ -541,7 +677,7 @@
         })
       );
 
-      renderPlaceCards(filtered.slice(0, Math.max(MIN_NEARBY_RESULTS, filtered.length)), catMap, thumbs);
+      renderPlaceCards(filtered, catMap, thumbs);
     } catch (error) {
       ui.places.innerHTML =
         "<p class=\"places-empty\">Unable to load nearby attractions right now.</p>";
@@ -581,9 +717,13 @@
       const meta = document.createElement("p");
       meta.className = "place-card__meta";
       meta.textContent =
-        "~" +
-        (item.dist >= 1000 ? (item.dist / 1000).toFixed(1) + " km" : Number(item.dist).toFixed(0) + " m") +
-        " away";
+        item.dist >= 1e11
+          ? "In your city (distance unavailable)"
+          : "~" +
+            (item.dist >= 1000
+              ? (item.dist / 1000).toFixed(1) + " km"
+              : Number(item.dist).toFixed(0) + " m") +
+            " away";
       body.appendChild(badge);
       body.appendChild(h4);
       body.appendChild(meta);
@@ -658,6 +798,118 @@
     return div.innerHTML;
   }
 
+  async function fetchPlaceSuggestions(query) {
+    const q = String(query || "").trim();
+    if (q.length < 2) return [];
+    try {
+      const [nomiRes, wikiRes] = await Promise.all([
+        fetch(
+          "https://nominatim.openstreetmap.org/search?format=jsonv2&q=" +
+            encodeURIComponent(q) +
+            "&limit=8&addressdetails=1&dedupe=1"
+        ).then(function (r) {
+          return r.json();
+        }),
+        fetch(
+          "https://en.wikipedia.org/w/api.php?action=opensearch&search=" +
+            encodeURIComponent(q) +
+            "&limit=8&namespace=0&format=json&origin=*"
+        ).then(function (r) {
+          return r.json();
+        }),
+      ]);
+
+      const seen = new Set();
+      const rows = [];
+
+      function addRow(label, meta) {
+        const key = label.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        rows.push({ label: label, meta: meta || "" });
+      }
+
+      if (Array.isArray(nomiRes)) {
+        nomiRes.forEach(function (p) {
+          if (p.display_name) addRow(p.display_name, p.type || p.addresstype || "Place");
+        });
+      }
+
+      if (Array.isArray(wikiRes) && wikiRes.length >= 2 && Array.isArray(wikiRes[1])) {
+        const titles = wikiRes[1];
+        const descs = wikiRes[2] || [];
+        titles.forEach(function (title, idx) {
+          const d = descs[idx] ? String(descs[idx]).slice(0, 96) : "Wikipedia article";
+          addRow(title, d);
+        });
+      }
+
+      return rows.slice(0, 14);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function setupPlaceSuggest(inputEl, listEl) {
+    if (!inputEl || !listEl) return;
+    let timer = null;
+
+    function hideList() {
+      listEl.hidden = true;
+      listEl.innerHTML = "";
+    }
+
+    function renderRows(rows) {
+      listEl.innerHTML = "";
+      if (!rows.length) {
+        hideList();
+        return;
+      }
+      rows.forEach(function (row) {
+        const li = document.createElement("li");
+        li.setAttribute("role", "presentation");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("role", "option");
+        btn.innerHTML =
+          "<span>" +
+          escapeHtml(row.label) +
+          '</span><span class="place-suggest__meta">' +
+          escapeHtml(row.meta) +
+          "</span>";
+        btn.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          inputEl.value = row.label;
+          hideList();
+          inputEl.focus();
+        });
+        li.appendChild(btn);
+        listEl.appendChild(li);
+      });
+      listEl.hidden = false;
+    }
+
+    inputEl.addEventListener("input", function () {
+      clearTimeout(timer);
+      const v = inputEl.value.trim();
+      if (v.length < 2) {
+        hideList();
+        return;
+      }
+      timer = window.setTimeout(function () {
+        fetchPlaceSuggestions(v).then(renderRows);
+      }, SUGGEST_DEBOUNCE_MS);
+    });
+
+    inputEl.addEventListener("blur", function () {
+      window.setTimeout(hideList, 200);
+    });
+
+    inputEl.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") hideList();
+    });
+  }
+
   ui.tripForm.addEventListener("submit", function (event) {
     event.preventDefault();
     const formData = new FormData(ui.tripForm);
@@ -698,4 +950,6 @@
   loadWelcomeName();
   detectLocation();
   initializeMap();
+  setupPlaceSuggest(ui.originInput, ui.originSuggest);
+  setupPlaceSuggest(ui.destinationInput, ui.destinationSuggest);
 })();

@@ -116,16 +116,22 @@
                         <div class="field-grid">
                           <label class="field">
                             <span>Origin</span>
-                            <div class="field-inline">
-                              <input id="origin" name="origin" placeholder="City or region" required autocomplete="address-level2" />
-                              <button id="origin-location-btn" class="btn btn--field-action" type="button" title="Use current location as origin">
-                                My location
-                              </button>
+                            <div class="field-suggest-wrap">
+                              <div class="field-inline">
+                                <input id="origin" name="origin" placeholder="City, landmark, or region" required autocomplete="off" autocapitalize="words" />
+                                <button id="origin-location-btn" class="btn btn--field-action" type="button" title="Use current location as origin">
+                                  My location
+                                </button>
+                              </div>
+                              <ul id="origin-suggest" class="place-suggest" role="listbox" hidden></ul>
                             </div>
                           </label>
                           <label class="field">
                             <span>Destination</span>
-                            <input id="destination" name="destination" placeholder="Where you’re going" required />
+                            <div class="field-suggest-wrap">
+                              <input id="destination" name="destination" placeholder="City, landmark, or region" required autocomplete="off" autocapitalize="words" />
+                              <ul id="destination-suggest" class="place-suggest" role="listbox" hidden></ul>
+                            </div>
                           </label>
                         </div>
                         <div class="field-grid field-grid--3">
@@ -167,7 +173,7 @@
             <div class="panel__head panel__head--split">
             <div>
             <h3 class="panel__title">Nearby tourist picks</h3>
-            <p class="panel__lede">Filtered for temples, monuments, museums, nature, and heritage. Schools, hospitals, and transport hubs are hidden.</p>
+            <p class="panel__lede">Top five temples, monuments, museums, and heritage in your current city (nearest first). Schools, hospitals, and similar non-sights are filtered out.</p>
             </div>
             </div>
             <div id="places" class="places-grid" role="list"></div>
