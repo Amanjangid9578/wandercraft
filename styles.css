@@ -435,14 +435,14 @@ body {
   gap: 0.35rem;
   padding: 0.85rem 0.95rem;
   border-radius: 14px;
-  border: 1px solid var(--line);
+  border: 3px solid var(--line);
   background: var(--surface-2);
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  /* box-shadow: 0 2px 10px rgb(0, 0, 0); */
 }
 
 .mood-card:hover {
@@ -469,27 +469,33 @@ body {
 
 .mood-card--peaceful {
   border-color: rgba(90, 122, 156, 0.35);
+      box-shadow: 4px 4px rgba(90, 122, 156, 0.35);
+
   background: linear-gradient(145deg, #eef3f8 0%, #e4ebf3 100%);
 }
 
 .mood-card--adventure {
   border-color: rgba(196, 92, 62, 0.35);
   background: linear-gradient(145deg, #fdf0ea 0%, #f5e4dc 100%);
+  box-shadow: 4px 4px rgba(196, 92, 62, 0.35);
 }
 
 .mood-card--romantic {
   border-color: rgba(176, 82, 121, 0.35);
   background: linear-gradient(145deg, #fceef3 0%, #f3e4ec 100%);
+  box-shadow: 4px 4px rgba(176, 82, 121, 0.35);
 }
 
 .mood-card--natural {
   border-color: rgba(72, 130, 98, 0.38);
   background: linear-gradient(145deg, #ecf5ee 0%, #e0ede4 100%);
+  box-shadow: 4px 4px rgba(72, 130, 98, 0.38);
 }
 
 .mood-card--spiritual {
   border-color: rgba(120, 100, 160, 0.38);
   background: linear-gradient(145deg, #f0edf7 0%, #e8e4f2 100%);
+  box-shadow: 4px 4px rgba(120, 100, 160, 0.38);
 }
 
 /* Mood results (bottom) */
