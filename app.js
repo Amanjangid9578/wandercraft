@@ -324,7 +324,7 @@
     ].forEach((item, idx, arr) => {
       const box = document.createElement("article");
       box.className = "budget-box" + (idx === arr.length - 1 ? " budget-box--total" : "");
-      box.innerHTML = "<p>" + item[0] + "</p><strong>$" + item[1].toFixed(0) + "</strong>";
+      box.innerHTML = "<p>" + item[0] + "</p><strong>₹" + item[1].toFixed(0) + "</strong>";
       ui.budgetSummary.appendChild(box);
     });
   }
