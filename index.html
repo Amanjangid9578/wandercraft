@@ -3,11 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WanderCraft - Login</title>
+  <title>ComfyWay - Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
+
+    @font-face {
+  font-family: sfreg;
+  src: url(fonts/SFPRODISPLAYREGULAR.OTF);
+}
+
+@font-face {
+  font-family: sfmed;
+  src: url(fonts/SFPRODISPLAYMEDIUM.OTF);
+}
+
     :root {
       --bg: #dee1cc;
       --surface: #ffffff;
@@ -39,6 +50,53 @@
         var(--bg);
     }
 
+    .brand {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 0rem;
+  margin-left: 20px;
+}
+
+.brand__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--line-strong);
+}
+
+.brand img{
+  width: 85px;
+  /* margin-bottom: 10px; */
+}
+
+.brand__eyebrow {
+  margin: 10px 0 0 0;
+  font-size: 30px;
+  line-height: 30px;
+  font-family: sfmed;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #000000;
+    font-weight: 600;
+
+}
+
+.brand__title {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+
+
     .card {
       width: min(420px, 100%);
       background: var(--surface);
@@ -53,10 +111,10 @@
 
     h1 {
       margin: 0 0 0.35rem;
-      font-family: var(--font-display);
-      font-size: 1.45rem;
+      font-family: sfmed;
+      font-size: 1.95rem;
       font-weight: 600;
-      letter-spacing: -0.02em;
+      letter-spacing: 0.1em;
       color: var(--text);
     }
 
@@ -127,8 +185,20 @@
   </style>
 </head>
 <body>
+
+  <div class="brand">
+        
+          <!-- <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><path d="M16 2L4 9v14l12 7 12-7V9L16 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 11v10M11 13.5l10 5M21 13.5l-10 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> -->
+          <img src="logoimg.png" alt="">
+      
+        <div>
+          <p class="brand__eyebrow">COMFYWAY</p>
+          <h1 class="brand__title">Travel Studio</h1>
+        </div>
+      </div>
+
   <section class="card" aria-labelledby="login-title">
-    <h1 id="login-title">Login</h1>
+    <h1 id="login-title">LOGIN.</h1>
     <p class="sub">Enter your details to continue to your travel dashboard.</p>
 
     <form id="login-form">
